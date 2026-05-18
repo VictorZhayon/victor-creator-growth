@@ -3,9 +3,9 @@
   "theme": "luma",
   "name": "Anthropic Messages API Docs",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+  "primary": "#FF7819",
+  "light": "#FF9038",
+  "dark": "#FF7819"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -16,14 +16,14 @@
           {
             "group": "Getting started",
             "pages": [
-              "index",
-              "tutorial"
+              "home/index",
+              "pages/tutorial"
             ]
           },
           {
             "group": "Reference",
             "pages": [
-              "api_reference"
+              "pages/api_reference"
             ]
           }
         ]
