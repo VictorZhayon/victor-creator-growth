@@ -1,0 +1,150 @@
+# Anthropic Messages API Reference
+
+**Base URL:** `https://api.anthropic.com`
+
+Every request requires the following headers:
+
+| Header | Value |
+|---|---|
+| `x-api-key` | Your Anthropic API key |
+| `anthropic-version` | `2023-06-01` |
+
+For your API key, visit the [Anthropic Console](https://console.anthropic.com).
+
+---
+
+## Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/messages` | Generate a completion |
+| `POST /v1/messages/count_tokens` | Estimate token usage before sending |
+| `POST /v1/messages/batches` | Submit multiple requests asynchronously |
+
+---
+
+## POST `/v1/messages`
+
+Send a structured list of messages to a Claude model and receive a generated response. This is the core completion endpoint — the foundation of any LLM-powered application.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `model` | string | Yes | Model ID. E.g. `claude-sonnet-4-20250514` |
+| `messages` | array | Yes | Ordered list of `{role, content}` objects. Roles: `user` or `assistant`. |
+| `max_tokens` | integer | Yes | Maximum tokens to generate. Hard cap on output length. |
+| `system` | string | No | System prompt; sets assistant behavior and context. |
+| `temperature` | float | No | Sampling randomness (0–1). Default: `1`. Lower = more deterministic. |
+| `stream` | boolean | No | If `true`, streams response as server-sent events (SSE). |
+| `stop_sequences` | array | No | Strings that stop generation when encountered. |
+| `top_p` | float | No | Nucleus sampling cutoff (0–1). Use instead of `temperature`. |
+
+### Error Codes
+
+| Code | Description |
+|---|---|
+| `400` | `invalid_request_error` — Malformed request body or missing required fields. |
+| `401` | `authentication_error` — Missing or invalid API key. |
+| `429` | `rate_limit_error` — Too many requests; back off and retry. |
+| `529` | `overloaded_error` — API temporarily overloaded; retry with backoff. |
+
+### Example request
+
+```bash
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4-20250514",
+    "max_tokens": 256,
+    "messages": [
+      { "role": "user", "content": "Hello, Claude." }
+    ]
+  }'
+```
+
+---
+
+## POST `/v1/messages/count_tokens`
+
+Estimate how many tokens a request will consume without generating a response. Use this before sending expensive completions to stay within context limits and manage costs.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `model` | string | Yes | Model ID to count tokens against (tokenization varies per model). |
+| `messages` | array | Yes | Same `{role, content}` array you plan to send to `/v1/messages`. |
+| `system` | string | No | System prompt to include in the token count. |
+| `tools` | array | No | Tool definitions to include in the count. |
+
+### Error Codes
+
+| Code | Description |
+|---|---|
+| `400` | `invalid_request_error` — Malformed body or unsupported model. |
+| `401` | `authentication_error` — Missing or invalid API key. |
+
+### Example request
+
+```bash
+curl https://api.anthropic.com/v1/messages/count_tokens \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4-20250514",
+    "messages": [
+      { "role": "user", "content": "Hello, Claude." }
+    ]
+  }'
+```
+
+---
+
+## POST `/v1/messages/batches`
+
+Submit up to 10,000 message requests in a single call for asynchronous processing. Ideal for bulk tasks like data pipelines, evaluations, and large-scale generation jobs at a **50% cost reduction**.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `requests` | array | Yes | Array of request objects (up to 10,000). Each item must include a unique `custom_id` and a `params` object matching the `/v1/messages` body shape. |
+| `custom_id` | string | Yes | Your unique identifier for each request. Returned in results for matching. |
+| `params.model` | string | Yes | Model ID for this individual request. |
+| `params.max_tokens` | integer | Yes | Max output tokens for this request. |
+| `params.messages` | array | Yes | Message array for this request. |
+
+### Error Codes
+
+| Code | Description |
+|---|---|
+| `400` | `invalid_request_error` — Batch exceeds 10,000 requests or contains malformed items. |
+| `401` | `authentication_error` — Missing or invalid API key. |
+| `429` | `rate_limit_error` — Batch submission rate limit reached. |
+
+### Example request
+
+```bash
+curl https://api.anthropic.com/v1/messages/batches \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requests": [
+      {
+        "custom_id": "request-1",
+        "params": {
+          "model": "claude-sonnet-4-20250514",
+          "max_tokens": 256,
+          "messages": [
+            { "role": "user", "content": "Summarize the water cycle." }
+          ]
+        }
+      }
+    ]
+  }'
+```
